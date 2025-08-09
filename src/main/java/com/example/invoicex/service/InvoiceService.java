@@ -93,31 +93,33 @@ public class InvoiceService {
         return invoiceRepository.findAll(spec, pageable);
     }
 
-    // ✅ New Update Invoice method
+    // **New update method**
     public InvoiceDTO updateInvoice(Long id, InvoiceDTO dto) {
-        Invoice invoice = invoiceRepository.findById(id)
+        Invoice existingInvoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
 
-        Client client = clientRepository.findById(dto.getClientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + dto.getClientId()));
+        existingInvoice.setInvoiceNumber(dto.getInvoiceNumber());
+        existingInvoice.setIssueDate(dto.getIssueDate());
+        existingInvoice.setDueDate(dto.getDueDate());
+        existingInvoice.setAmount(dto.getAmount());
+        existingInvoice.setStatus(dto.getStatus());
 
-        invoice.setInvoiceNumber(dto.getInvoiceNumber());
-        invoice.setIssueDate(dto.getIssueDate());
-        invoice.setDueDate(dto.getDueDate());
-        invoice.setAmount(dto.getAmount());
-        invoice.setStatus(dto.getStatus());
-        invoice.setClient(client);
+        if (dto.getClientId() != null) {
+            Client client = clientRepository.findById(dto.getClientId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + dto.getClientId()));
+            existingInvoice.setClient(client);
+        }
 
-        Invoice updated = invoiceRepository.save(invoice);
+        Invoice updatedInvoice = invoiceRepository.save(existingInvoice);
 
         return InvoiceDTO.builder()
-                .id(updated.getId())
-                .invoiceNumber(updated.getInvoiceNumber())
-                .issueDate(updated.getIssueDate())
-                .dueDate(updated.getDueDate())
-                .amount(updated.getAmount())
-                .status(updated.getStatus())
-                .clientId(updated.getClient().getId())
+                .id(updatedInvoice.getId())
+                .invoiceNumber(updatedInvoice.getInvoiceNumber())
+                .issueDate(updatedInvoice.getIssueDate())
+                .dueDate(updatedInvoice.getDueDate())
+                .amount(updatedInvoice.getAmount())
+                .status(updatedInvoice.getStatus())
+                .clientId(updatedInvoice.getClient().getId())
                 .build();
     }
 }

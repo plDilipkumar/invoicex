@@ -13,7 +13,7 @@ public class WebConfig {
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
+            public void addCorsMappings(@org.springframework.lang.NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins("https://invoicex-frontend.vercel.app") // your React frontend
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
