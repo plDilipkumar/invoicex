@@ -1,4 +1,5 @@
 package com.example.invoicex.service;
+
 import com.example.invoicex.dto.InvoiceDTO;
 import com.example.invoicex.entity.Client;
 import com.example.invoicex.entity.Invoice;
@@ -13,8 +14,8 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import static com.example.invoicex.specification.InvoiceSpecification.*;
 
+import static com.example.invoicex.specification.InvoiceSpecification.*;
 
 @Service
 public class InvoiceService {
@@ -90,5 +91,33 @@ public class InvoiceService {
         }
 
         return invoiceRepository.findAll(spec, pageable);
+    }
+
+    // ✅ New Update Invoice method
+    public InvoiceDTO updateInvoice(Long id, InvoiceDTO dto) {
+        Invoice invoice = invoiceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
+
+        Client client = clientRepository.findById(dto.getClientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + dto.getClientId()));
+
+        invoice.setInvoiceNumber(dto.getInvoiceNumber());
+        invoice.setIssueDate(dto.getIssueDate());
+        invoice.setDueDate(dto.getDueDate());
+        invoice.setAmount(dto.getAmount());
+        invoice.setStatus(dto.getStatus());
+        invoice.setClient(client);
+
+        Invoice updated = invoiceRepository.save(invoice);
+
+        return InvoiceDTO.builder()
+                .id(updated.getId())
+                .invoiceNumber(updated.getInvoiceNumber())
+                .issueDate(updated.getIssueDate())
+                .dueDate(updated.getDueDate())
+                .amount(updated.getAmount())
+                .status(updated.getStatus())
+                .clientId(updated.getClient().getId())
+                .build();
     }
 }

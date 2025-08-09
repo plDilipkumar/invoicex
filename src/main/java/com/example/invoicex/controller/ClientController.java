@@ -15,21 +15,31 @@ public class ClientController {
 
     private final ClientService clientService;
 
+    // CREATE Client
     @PostMapping
     public ResponseEntity<ClientDTO> createClient(@RequestBody ClientDTO dto) {
         return ResponseEntity.ok(clientService.createClient(dto));
     }
 
+    // READ All Clients
     @GetMapping
     public ResponseEntity<List<ClientDTO>> getAllClients() {
         return ResponseEntity.ok(clientService.getAllClients());
     }
 
+    // READ Single Client
     @GetMapping("/{id}")
     public ResponseEntity<ClientDTO> getClient(@PathVariable Long id) {
         return ResponseEntity.ok(clientService.getClientById(id));
     }
 
+    // UPDATE Client
+    @PutMapping("/{id}")
+    public ResponseEntity<ClientDTO> updateClient(@PathVariable Long id, @RequestBody ClientDTO dto) {
+        return ResponseEntity.ok(clientService.updateClient(id, dto));
+    }
+
+    // DELETE Client
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
         clientService.deleteClient(id);
