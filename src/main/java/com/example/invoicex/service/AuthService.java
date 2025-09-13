@@ -55,7 +55,7 @@ public class AuthService {
             passwordResetTokenRepository.save(resetToken);
             
             // Send reset email
-            String resetUrl = "http://localhost:3000/reset-password?token=" + token;
+            String resetUrl = "https://invoicex-frontend.vercel.app/reset-password?token=" + token;
             String emailBody = String.format(
                 "Hello %s,\n\n" +
                 "You requested a password reset for your InvoiceX account.\n\n" +
