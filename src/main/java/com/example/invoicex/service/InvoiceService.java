@@ -3,31 +3,33 @@ package com.example.invoicex.service;
 import com.example.invoicex.dto.InvoiceDTO;
 import com.example.invoicex.entity.Client;
 import com.example.invoicex.entity.Invoice;
+import com.example.invoicex.entity.User;
 import com.example.invoicex.exception.ResourceNotFoundException;
 import com.example.invoicex.repository.ClientRepository;
 import com.example.invoicex.repository.InvoiceRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 
 import static com.example.invoicex.specification.InvoiceSpecification.*;
 
+@RequiredArgsConstructor
 @Service
 public class InvoiceService {
 
-    @Autowired
-    private InvoiceRepository invoiceRepository;
-
-    @Autowired
-    private ClientRepository clientRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final ClientRepository clientRepository;
+    private final AuthService authService;
+    private final PdfService pdfService;
+    private final MailService mailService;
 
     public InvoiceDTO createInvoice(InvoiceDTO dto) {
-        Client client = clientRepository.findById(dto.getClientId())
+        User current = authService.getCurrentUser();
+        Client client = clientRepository.findByIdAndUser(dto.getClientId(), current)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + dto.getClientId()));
 
         Invoice invoice = Invoice.builder()
@@ -37,16 +39,32 @@ public class InvoiceService {
                 .amount(dto.getAmount())
                 .status(dto.getStatus())
                 .client(client)
+                .user(current)
                 .build();
 
         Invoice saved = invoiceRepository.save(invoice);
+
+        // Send PDF to client email by default if email exists
+        if (client.getEmail() != null && !client.getEmail().isEmpty()) {
+            byte[] pdf = pdfService.generateInvoicePdf(saved);
+            try {
+                mailService.sendInvoice(client.getEmail(),
+                        "Your Invoice " + saved.getInvoiceNumber(),
+                        "Please find attached your invoice.",
+                        pdf,
+                        "invoice-" + saved.getInvoiceNumber() + ".pdf");
+            } catch (Exception ignored) {
+                // Non-blocking
+            }
+        }
 
         dto.setId(saved.getId());
         return dto;
     }
 
     public List<InvoiceDTO> getAllInvoices() {
-        return invoiceRepository.findAll().stream().map(invoice -> InvoiceDTO.builder()
+        User current = authService.getCurrentUser();
+        return invoiceRepository.findByUser(current).stream().map(invoice -> InvoiceDTO.builder()
                 .id(invoice.getId())
                 .invoiceNumber(invoice.getInvoiceNumber())
                 .issueDate(invoice.getIssueDate())
@@ -59,7 +77,8 @@ public class InvoiceService {
     }
 
     public InvoiceDTO getInvoiceById(Long id) {
-        Invoice invoice = invoiceRepository.findById(id)
+        User current = authService.getCurrentUser();
+        Invoice invoice = invoiceRepository.findByIdAndUser(id, current)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
 
         return InvoiceDTO.builder()
@@ -73,15 +92,45 @@ public class InvoiceService {
                 .build();
     }
 
+    public InvoiceDTO updateInvoice(Long id, InvoiceDTO dto) {
+        User current = authService.getCurrentUser();
+        Invoice invoice = invoiceRepository.findByIdAndUser(id, current)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
+
+        Client client = clientRepository.findByIdAndUser(dto.getClientId(), current)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + dto.getClientId()));
+
+        invoice.setInvoiceNumber(dto.getInvoiceNumber());
+        invoice.setIssueDate(dto.getIssueDate());
+        invoice.setDueDate(dto.getDueDate());
+        invoice.setAmount(dto.getAmount());
+        invoice.setStatus(dto.getStatus());
+        invoice.setClient(client);
+
+        Invoice updated = invoiceRepository.save(invoice);
+
+        return InvoiceDTO.builder()
+                .id(updated.getId())
+                .invoiceNumber(updated.getInvoiceNumber())
+                .issueDate(updated.getIssueDate())
+                .dueDate(updated.getDueDate())
+                .amount(updated.getAmount())
+                .status(updated.getStatus())
+                .clientId(updated.getClient().getId())
+                .build();
+    }
+
     public void deleteInvoice(Long id) {
-        Invoice invoice = invoiceRepository.findById(id)
+        User current = authService.getCurrentUser();
+        Invoice invoice = invoiceRepository.findByIdAndUser(id, current)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
 
         invoiceRepository.delete(invoice);
     }
 
     public Page<Invoice> searchInvoices(String keyword, String status, Pageable pageable) {
-        Specification<Invoice> spec = Specification.where(null);
+        User current = authService.getCurrentUser();
+        Specification<Invoice> spec = Specification.where(belongsToUser(current));
 
         if (keyword != null && !keyword.isEmpty()) {
             spec = spec.and(containsText(keyword));
@@ -91,35 +140,5 @@ public class InvoiceService {
         }
 
         return invoiceRepository.findAll(spec, pageable);
-    }
-
-    // **New update method**
-    public InvoiceDTO updateInvoice(Long id, InvoiceDTO dto) {
-        Invoice existingInvoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
-
-        existingInvoice.setInvoiceNumber(dto.getInvoiceNumber());
-        existingInvoice.setIssueDate(dto.getIssueDate());
-        existingInvoice.setDueDate(dto.getDueDate());
-        existingInvoice.setAmount(dto.getAmount());
-        existingInvoice.setStatus(dto.getStatus());
-
-        if (dto.getClientId() != null) {
-            Client client = clientRepository.findById(dto.getClientId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + dto.getClientId()));
-            existingInvoice.setClient(client);
-        }
-
-        Invoice updatedInvoice = invoiceRepository.save(existingInvoice);
-
-        return InvoiceDTO.builder()
-                .id(updatedInvoice.getId())
-                .invoiceNumber(updatedInvoice.getInvoiceNumber())
-                .issueDate(updatedInvoice.getIssueDate())
-                .dueDate(updatedInvoice.getDueDate())
-                .amount(updatedInvoice.getAmount())
-                .status(updatedInvoice.getStatus())
-                .clientId(updatedInvoice.getClient().getId())
-                .build();
     }
 }

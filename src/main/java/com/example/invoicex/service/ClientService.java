@@ -1,6 +1,8 @@
 package com.example.invoicex.service;
+
 import com.example.invoicex.dto.ClientDTO;
 import com.example.invoicex.entity.Client;
+import com.example.invoicex.entity.User;
 import com.example.invoicex.exception.ResourceNotFoundException;
 import com.example.invoicex.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,43 +16,25 @@ import java.util.stream.Collectors;
 public class ClientService {
 
     private final ClientRepository clientRepository;
+    private final AuthService authService;
 
     public ClientDTO createClient(ClientDTO dto) {
+        User current = authService.getCurrentUser();
         Client client = Client.builder()
                 .name(dto.getName())
                 .email(dto.getEmail())
                 .company(dto.getCompany())
                 .phone(dto.getPhone())
+                .user(current)
                 .build();
         Client saved = clientRepository.save(client);
         dto.setId(saved.getId());
         return dto;
     }
-    public ClientDTO updateClient(Long id, ClientDTO dto) {
-        Client existingClient = clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client not found with ID: " + id));
-
-        // Update fields
-        existingClient.setName(dto.getName());
-        existingClient.setEmail(dto.getEmail());
-        existingClient.setPhone(dto.getPhone());
-        // Add other fields as needed
-
-        Client updatedClient = clientRepository.save(existingClient);
-
-        // Convert back to DTO and return
-        return ClientDTO.builder()
-                .id(updatedClient.getId())
-                .name(updatedClient.getName())
-                .email(updatedClient.getEmail())
-                .phone(updatedClient.getPhone())
-                // Add other fields here
-                .build();
-    }
-
 
     public List<ClientDTO> getAllClients() {
-        return clientRepository.findAll()
+        User current = authService.getCurrentUser();
+        return clientRepository.findByUser(current)
                 .stream()
                 .map(c -> ClientDTO.builder()
                         .id(c.getId())
@@ -63,7 +47,8 @@ public class ClientService {
     }
 
     public ClientDTO getClientById(Long id) {
-        Client c = clientRepository.findById(id)
+        User current = authService.getCurrentUser();
+        Client c = clientRepository.findByIdAndUser(id, current)
                 .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
         return ClientDTO.builder()
                 .id(c.getId())
@@ -74,10 +59,23 @@ public class ClientService {
                 .build();
     }
 
+    public ClientDTO updateClient(Long id, ClientDTO dto) {
+        User current = authService.getCurrentUser();
+        Client client = clientRepository.findByIdAndUser(id, current)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+        client.setName(dto.getName());
+        client.setEmail(dto.getEmail());
+        client.setCompany(dto.getCompany());
+        client.setPhone(dto.getPhone());
+        clientRepository.save(client);
+        dto.setId(client.getId());
+        return dto;
+    }
+
     public void deleteClient(Long id) {
-        if (!clientRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Client not found");
-        }
-        clientRepository.deleteById(id);
+        User current = authService.getCurrentUser();
+        Client client = clientRepository.findByIdAndUser(id, current)
+                .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+        clientRepository.delete(client);
     }
 }

@@ -18,4 +18,8 @@ public class Client {
     private String email;
     private String company;
     private String phone;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

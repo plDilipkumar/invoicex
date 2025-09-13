@@ -13,7 +13,7 @@ import com.example.invoicex.dto.ClientDTO;
 @RequiredArgsConstructor
 public class ClientController {
 
-    private final ClientService clientService;
+    private  final ClientService clientService;
 
     @PostMapping
     public ResponseEntity<ClientDTO> createClient(@RequestBody ClientDTO dto) {
