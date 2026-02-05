@@ -50,10 +50,6 @@ public class InvoiceController {
     public ResponseEntity<InvoiceDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(invoiceService.getInvoiceById(id));
     }
-    @PutMapping("/test-put")
-    public ResponseEntity<String> testPut() {
-        return ResponseEntity.ok("PUT works!");
-    }
 
     // UPDATE Invoice
     @PutMapping("/{id}")
