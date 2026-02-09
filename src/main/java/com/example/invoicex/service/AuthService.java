@@ -8,6 +8,7 @@ import com.example.invoicex.exception.ResourceNotFoundException;
 import com.example.invoicex.repository.PasswordResetTokenRepository;
 import com.example.invoicex.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,9 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
+
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     public User getCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -55,7 +59,7 @@ public class AuthService {
             passwordResetTokenRepository.save(resetToken);
             
             // Send reset email
-            String resetUrl = "http://localhost:3000/reset-password?token=" + token;
+            String resetUrl = frontendUrl + "/reset-password?token=" + token;
             String emailBody = String.format(
                 "Hello %s,\n\n" +
                 "You requested a password reset for your InvoiceX account.\n\n" +

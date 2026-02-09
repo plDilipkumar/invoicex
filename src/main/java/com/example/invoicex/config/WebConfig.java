@@ -16,8 +16,7 @@ public class WebConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins(
-                            "http://localhost:3000",
-                            "https://invoicex-frontend-8ngfpdrcg-dilips-projects-d0ae994d.vercel.app"
+                            "https://invoicex-frontend.vercel.app"
                         )
                         .allowedMethods("*")
                         .allowedHeaders("*")
