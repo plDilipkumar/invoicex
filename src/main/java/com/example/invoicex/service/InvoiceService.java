@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -85,6 +86,12 @@ public class InvoiceService {
         User current = authService.getCurrentUser();
         return invoiceRepository.findByIdAndUser(id, current)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generateInvoicePdfForCurrentUser(Long id) {
+        Invoice invoice = getInvoiceEntityForCurrentUser(id);
+        return pdfService.generateInvoicePdf(invoice);
     }
 
     private InvoiceDTO toDto(Invoice invoice) {
