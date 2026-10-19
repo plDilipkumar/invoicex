@@ -1,9 +1,7 @@
 package com.example.invoicex.controller;
 
 import com.example.invoicex.dto.InvoiceDTO;
-import com.example.invoicex.entity.Invoice;
 import com.example.invoicex.service.InvoiceService;
-import com.example.invoicex.service.PdfService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +19,6 @@ public class InvoiceController {
 
     @Autowired
     private InvoiceService invoiceService;
-
-    @Autowired
-    private PdfService pdfService;
 
     // CREATE Invoice
     @PostMapping
@@ -70,11 +65,10 @@ public class InvoiceController {
 
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
-        Invoice invoice = invoiceService.getInvoiceEntityForCurrentUser(id);
-        byte[] pdf = pdfService.generateInvoicePdf(invoice);
+        byte[] pdf = invoiceService.generateInvoicePdfForCurrentUser(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "invoice-" + invoice.getInvoiceNumber() + ".pdf");
+        headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
