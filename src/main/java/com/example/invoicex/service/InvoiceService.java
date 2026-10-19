@@ -77,10 +77,17 @@ public class InvoiceService {
     }
 
     public InvoiceDTO getInvoiceById(Long id) {
-        User current = authService.getCurrentUser();
-        Invoice invoice = invoiceRepository.findByIdAndUser(id, current)
-                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
+        Invoice invoice = getInvoiceEntityForCurrentUser(id);
+        return toDto(invoice);
+    }
 
+    public Invoice getInvoiceEntityForCurrentUser(Long id) {
+        User current = authService.getCurrentUser();
+        return invoiceRepository.findByIdAndUser(id, current)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with ID: " + id));
+    }
+
+    private InvoiceDTO toDto(Invoice invoice) {
         return InvoiceDTO.builder()
                 .id(invoice.getId())
                 .invoiceNumber(invoice.getInvoiceNumber())
@@ -88,7 +95,7 @@ public class InvoiceService {
                 .dueDate(invoice.getDueDate())
                 .amount(invoice.getAmount())
                 .status(invoice.getStatus())
-                .clientId(invoice.getClient().getId())
+                .clientId(invoice.getClient() == null ? null : invoice.getClient().getId())
                 .build();
     }
 
@@ -128,17 +135,17 @@ public class InvoiceService {
         invoiceRepository.delete(invoice);
     }
 
-    public Page<Invoice> searchInvoices(String keyword, String status, Pageable pageable) {
+    public Page<InvoiceDTO> searchInvoices(String keyword, String status, Pageable pageable) {
         User current = authService.getCurrentUser();
         Specification<Invoice> spec = Specification.where(belongsToUser(current));
 
-        if (keyword != null && !keyword.isEmpty()) {
-            spec = spec.and(containsText(keyword));
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(containsText(keyword.trim()));
         }
-        if (status != null && !status.isEmpty()) {
-            spec = spec.and(hasStatus(status));
+        if (status != null && !status.isBlank()) {
+            spec = spec.and(hasStatus(status.trim()));
         }
 
-        return invoiceRepository.findAll(spec, pageable);
+        return invoiceRepository.findAll(spec, pageable).map(this::toDto);
     }
 }
