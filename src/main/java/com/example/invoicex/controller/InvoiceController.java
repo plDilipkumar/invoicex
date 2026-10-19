@@ -4,7 +4,6 @@ import com.example.invoicex.dto.InvoiceDTO;
 import com.example.invoicex.entity.Invoice;
 import com.example.invoicex.service.InvoiceService;
 import com.example.invoicex.service.PdfService;
-import com.example.invoicex.service.MailService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +24,6 @@ public class InvoiceController {
 
     @Autowired
     private PdfService pdfService;
-
-    @Autowired
-    private MailService mailService;
 
     // CREATE Invoice
     @PostMapping
@@ -82,14 +78,4 @@ public class InvoiceController {
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
-    // Test email configuration
-    @PostMapping("/test-email")
-    public ResponseEntity<String> testEmail(@RequestParam String email) {
-        try {
-            mailService.sendText(email, "Test Email from InvoiceX", "This is a test email to verify email configuration.");
-            return ResponseEntity.ok("Test email sent successfully to " + email);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Failed to send test email: " + e.getMessage());
-        }
-    }
 }
