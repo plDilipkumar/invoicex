@@ -5,7 +5,6 @@ import com.example.invoicex.entity.Invoice;
 import com.example.invoicex.service.InvoiceService;
 import com.example.invoicex.service.PdfService;
 import com.example.invoicex.service.MailService;
-import com.example.invoicex.repository.InvoiceRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +25,6 @@ public class InvoiceController {
 
     @Autowired
     private PdfService pdfService;
-
-    @Autowired
-    private InvoiceRepository invoiceRepository;
 
     @Autowired
     private MailService mailService;
@@ -66,7 +62,7 @@ public class InvoiceController {
 
     // SEARCH + FILTER + PAGINATION
     @GetMapping("/search")
-    public ResponseEntity<Page<Invoice>> searchInvoices(
+    public ResponseEntity<Page<InvoiceDTO>> searchInvoices(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
@@ -78,7 +74,7 @@ public class InvoiceController {
 
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
-        Invoice invoice = invoiceRepository.findById(id).orElseThrow();
+        Invoice invoice = invoiceService.getInvoiceEntityForCurrentUser(id);
         byte[] pdf = pdfService.generateInvoicePdf(invoice);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
