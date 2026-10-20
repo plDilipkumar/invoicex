@@ -34,12 +34,16 @@ public class UserService {
                 .username(dto.getUsername())
                 .email(dto.getEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
-                .role(dto.getRole() == null ? "ROLE_USER" : dto.getRole())
+                .role("ROLE_USER")
                 .build();
         User saved = userRepository.save(u);
-        dto.setId(saved.getId());
-        dto.setPassword(null); // do not return password
-        return dto;
+        // Return only persisted, non-sensitive fields. Never trust a public request to assign roles.
+        return UserDTO.builder()
+                .id(saved.getId())
+                .username(saved.getUsername())
+                .email(saved.getEmail())
+                .role(saved.getRole())
+                .build();
     }
 
     public AuthResponse login(AuthRequest req) {
