@@ -44,19 +44,27 @@ public class InvoiceService {
                 .build();
 
         Invoice saved = invoiceRepository.save(invoice);
+        String invoiceLabel = saved.getInvoiceNumber() == null ? String.valueOf(saved.getId()) : saved.getInvoiceNumber();
 
-        // Send PDF to client email by default if email exists
-        if (client.getEmail() != null && !client.getEmail().isEmpty()) {
+        // Send the PDF to the client and a separate creation notice to the account owner.
+        if (client.getEmail() != null && !client.getEmail().isBlank()) {
             byte[] pdf = pdfService.generateInvoicePdf(saved);
-            try {
-                mailService.sendInvoice(client.getEmail(),
-                        "Your Invoice " + saved.getInvoiceNumber(),
-                        "Please find attached your invoice.",
-                        pdf,
-                        "invoice-" + saved.getInvoiceNumber() + ".pdf");
-            } catch (Exception ignored) {
-                // Non-blocking
-            }
+            mailService.sendInvoice(client.getEmail(),
+                    "Your Invoice " + invoiceLabel,
+                    "Please find attached your invoice from InvoiceX.",
+                    pdf,
+                    "invoice-" + invoiceLabel + ".pdf");
+        }
+
+        String ownerEmail = current.getEmail();
+        if (ownerEmail != null && !ownerEmail.isBlank()
+                && (client.getEmail() == null || !ownerEmail.equalsIgnoreCase(client.getEmail()))) {
+            mailService.sendText(ownerEmail, "Invoice created: " + invoiceLabel,
+                    "Your InvoiceX invoice " + invoiceLabel + " was created successfully.\n"
+                    + "Client: " + client.getName() + "\n"
+                    + "Amount: " + saved.getAmount() + "\n"
+                    + "Due date: " + saved.getDueDate() + "\n"
+                    + "Status: " + saved.getStatus());
         }
 
         dto.setId(saved.getId());
